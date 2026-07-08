@@ -5,11 +5,10 @@ const { parseMessage, isNewsletterMessage } = require('../utils/messageParser');
 const { parseCommand } = require('../utils/commandParser');
 const { getCommand } = require('../handlers/commandHandler');
 const { applyGroupProtection } = require('../middleware/groupProtection');
-const { getUser } = require('../database/userDatabase');
+const { getUser, addExp } = require('../database/userDatabase');
 
 async function handleIncomingMessage(sock, messageUpdate) {
   const { messages, type } = messageUpdate;
-
   if (type !== 'notify') return;
 
   for (const msg of messages) {
@@ -18,7 +17,7 @@ async function handleIncomingMessage(sock, messageUpdate) {
 
     const parsed = parseMessage(msg);
     if (parsed.fromMe) continue;
-    // Pastikan user tercatat di database (auto-register)
+
     const user = getUser(parsed.sender, parsed.pushName);
 
     logger.info(
@@ -30,11 +29,17 @@ async function handleIncomingMessage(sock, messageUpdate) {
       `📩 ${parsed.pushName}: ${parsed.text || `[${parsed.type}]`}`
     );
 
-    // --- Group Protection Middleware ---
-    const violated = await applyGroupProtection(sock, parsed);
-    if (violated) continue; // pesan sudah ditangani (dihapus + diperingatkan), stop di sini
+    const expResult = addExp(parsed.sender);
+    if (expResult.leveledUp) {
+      await sock.sendMessage(parsed.remoteJid, {
+        text: `🎉 Selamat @${parsed.pushName}, kamu naik ke *Level ${expResult.newLevel}*!`,
+        mentions: [parsed.sender],
+      });
+    }
 
-    // --- Command Handling ---
+    const violated = await applyGroupProtection(sock, parsed);
+    if (violated) continue;
+
     const commandData = parseCommand(parsed.text);
     if (!commandData) continue;
 
