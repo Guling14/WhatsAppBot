@@ -53,29 +53,33 @@ async function handleGroupParticipantsUpdate(sock, update) {
 
 async function handleMemberJoin(sock, groupId, participants) {
   for (const p of participants) {
-    const name = jidToDisplayName(extractJid(p));
-    await sendText(sock, groupId, `👋 Selamat datang @${name} di grup!`);
+    const jid = extractJid(p);
+    const name = jidToDisplayName(jid);
+    await sendText(sock, groupId, `👋 Selamat datang @${name} di grup!`, [jid]);
   }
 }
 
 async function handleMemberLeave(sock, groupId, participants) {
   for (const p of participants) {
-    const name = jidToDisplayName(extractJid(p));
-    await sendText(sock, groupId, `👋 Selamat tinggal @${name}...`);
+    const jid = extractJid(p);
+    const name = jidToDisplayName(jid);
+    await sendText(sock, groupId, `👋 Selamat tinggal @${name}...`, [jid]);
   }
 }
 
 async function handleMemberPromote(sock, groupId, participants) {
   for (const p of participants) {
-    const name = jidToDisplayName(extractJid(p));
-    await sendText(sock, groupId, `⬆️ @${name} sekarang menjadi admin.`);
+    const jid = extractJid(p);
+    const name = jidToDisplayName(jid);
+    await sendText(sock, groupId, `⬆️ @${name} sekarang menjadi admin.`, [jid]);
   }
 }
 
 async function handleMemberDemote(sock, groupId, participants) {
   for (const p of participants) {
-    const name = jidToDisplayName(extractJid(p));
-    await sendText(sock, groupId, `⬇️ @${name} bukan lagi admin.`);
+    const jid = extractJid(p);
+    const name = jidToDisplayName(jid);
+    await sendText(sock, groupId, `⬇️ @${name} bukan lagi admin.`, [jid]);
   }
 }
 

@@ -5,9 +5,9 @@ const logger = require('../utils/logger');
 /**
  * Mengirim pesan teks biasa ke sebuah chat.
  */
-async function sendText(sock, jid, text) {
+async function sendText(sock, jid, text, mentions = []) {
   try {
-    return await sock.sendMessage(jid, { text });
+    return await sock.sendMessage(jid, { text, mentions });
   } catch (err) {
     logger.error({ err }, 'Gagal mengirim pesan teks');
   }
