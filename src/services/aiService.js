@@ -77,4 +77,76 @@ async function askGemini(prompt) {
   }
 }
 
-module.exports = { askGemini };
+/**
+ * Mengirim prompt ke Gemini DENGAN menyertakan riwayat percakapan sebelumnya,
+ * supaya AI memiliki konteks dari chat-chat sebelumnya.
+ * @param {Array<{role: string, text: string}>} history - Riwayat percakapan.
+ * @param {string} newMessage - Pesan baru dari user.
+ * @returns {Promise<string>} Jawaban dari AI.
+ */
+async function generateChatReply(history, newMessage) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY belum diset di .env');
+  }
+
+  const contents = [
+    ...history.map((entry) => ({
+      role: entry.role,
+      parts: [{ text: entry.text }],
+    })),
+    {
+      role: 'user',
+      parts: [{ text: newMessage }],
+    },
+  ];
+
+  try {
+    const response = await axios.post(
+      GEMINI_ENDPOINT,
+      {
+        system_instruction: {
+          parts: [{ text: SYSTEM_INSTRUCTION }],
+        },
+        contents,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': GEMINI_API_KEY,
+        },
+        timeout: 30000,
+      }
+    );
+
+    const candidate = response.data?.candidates?.[0];
+    const text = candidate?.content?.parts?.map((p) => p.text).join('');
+
+    if (!text) {
+      logger.warn({ data: response.data }, 'Gemini tidak mengembalikan teks jawaban (aichat)');
+      throw new Error('Gemini tidak memberikan jawaban (kemungkinan diblokir safety filter).');
+    }
+
+    return text.trim();
+  } catch (err) {
+    if (err.response) {
+      logger.error(
+        { status: err.response.status, data: err.response.data },
+        'Gemini API mengembalikan error (aichat)'
+      );
+      if (err.response.status === 429) {
+        throw new Error('Kuota Gemini API sudah habis untuk saat ini, coba lagi nanti.');
+      }
+      if (err.response.status === 400) {
+        throw new Error('Permintaan ke Gemini API tidak valid (cek API key di .env).');
+      }
+      if (err.response.status === 403) {
+        throw new Error('API key ditolak. Cek kembali GEMINI_API_KEY di .env.');
+      }
+    } else {
+      logger.error({ err }, 'Gagal menghubungi Gemini API (aichat)');
+    }
+    throw new Error('Gagal mendapatkan jawaban dari AI, coba lagi nanti.');
+  }
+}
+
+module.exports = { askGemini, generateChatReply };

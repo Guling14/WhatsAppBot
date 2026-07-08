@@ -4,6 +4,16 @@ const logger = require('../utils/logger');
 const { sendText } = require('../services/replyService');
 
 /**
+ * Mengambil JID string dari sebuah entri participant.
+ * Baileys versi baru mengirim participant sebagai object ({ id, phoneNumber, admin }),
+ * bukan lagi string biasa — fungsi ini menormalkan keduanya.
+ */
+function extractJid(participant) {
+  if (typeof participant === 'string') return participant;
+  return participant?.id || participant?.phoneNumber || null;
+}
+
+/**
  * Mengambil nama tampilan sederhana dari sebuah JID,
  * misal "628123456789@s.whatsapp.net" -> "628123456789"
  */
@@ -42,33 +52,29 @@ async function handleGroupParticipantsUpdate(sock, update) {
 }
 
 async function handleMemberJoin(sock, groupId, participants) {
-  for (const jid of participants) {
-    const name = jidToDisplayName(jid);
-    await sendText(
-      sock,
-      groupId,
-      `👋 Selamat datang @${name} di grup!`
-    );
+  for (const p of participants) {
+    const name = jidToDisplayName(extractJid(p));
+    await sendText(sock, groupId, `👋 Selamat datang @${name} di grup!`);
   }
 }
 
 async function handleMemberLeave(sock, groupId, participants) {
-  for (const jid of participants) {
-    const name = jidToDisplayName(jid);
+  for (const p of participants) {
+    const name = jidToDisplayName(extractJid(p));
     await sendText(sock, groupId, `👋 Selamat tinggal @${name}...`);
   }
 }
 
 async function handleMemberPromote(sock, groupId, participants) {
-  for (const jid of participants) {
-    const name = jidToDisplayName(jid);
+  for (const p of participants) {
+    const name = jidToDisplayName(extractJid(p));
     await sendText(sock, groupId, `⬆️ @${name} sekarang menjadi admin.`);
   }
 }
 
 async function handleMemberDemote(sock, groupId, participants) {
-  for (const jid of participants) {
-    const name = jidToDisplayName(jid);
+  for (const p of participants) {
+    const name = jidToDisplayName(extractJid(p));
     await sendText(sock, groupId, `⬇️ @${name} bukan lagi admin.`);
   }
 }
