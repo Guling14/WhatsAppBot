@@ -6,6 +6,8 @@ const { parseCommand } = require('../utils/commandParser');
 const { getCommand } = require('../handlers/commandHandler');
 const { applyGroupProtection } = require('../middleware/groupProtection');
 const { getUser, addExp } = require('../database/userDatabase');
+const { isMaintenanceMode } = require('../database/settingsDatabase');
+const { isOwner } = require('../utils/ownerHelper');
 
 async function handleIncomingMessage(sock, messageUpdate) {
   const { messages, type } = messageUpdate;
@@ -45,6 +47,24 @@ async function handleIncomingMessage(sock, messageUpdate) {
 
     const command = getCommand(commandData.commandName);
     if (!command) continue;
+
+    if (user.isBanned && !isOwner(parsed)) {
+      await sock.sendMessage(
+        parsed.remoteJid,
+        { text: '🚫 Kamu diblokir dari menggunakan bot ini.' },
+        { quoted: parsed.raw }
+      );
+      continue;
+    }
+
+    if (isMaintenanceMode() && !isOwner(parsed)) {
+      await sock.sendMessage(
+        parsed.remoteJid,
+        { text: '🛠️ Bot sedang maintenance, coba lagi nanti.' },
+        { quoted: parsed.raw }
+      );
+      continue;
+    }
 
     try {
       logger.info(`⚡ Menjalankan command: ${commandData.commandName}`);

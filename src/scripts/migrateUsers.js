@@ -1,8 +1,4 @@
 // src/scripts/migrateUsers.js
-//
-// Jalankan sekali: node src/scripts/migrateUsers.js
-// Mengisi field-field baru (economy/level) ke user lama yang belum punya,
-// tanpa mengubah field yang sudah ada nilainya.
 
 const JsonDatabase = require('../database/jsonDatabase');
 
@@ -16,6 +12,7 @@ const FIELD_DEFAULTS = {
   lastDailyAt: null,
   xpBoostUntil: null,
   inventory: [],
+  warningCount: 0,
 };
 
 function migrate() {

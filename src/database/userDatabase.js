@@ -8,6 +8,7 @@ const db = new JsonDatabase('users');
 const EXP_COOLDOWN_MS = 60 * 1000;
 const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const XP_BOOST_DURATION_MS = 60 * 60 * 1000;
+const WARNING_LIMIT = 3;
 
 function createDefaultUser(jid, pushName) {
   return {
@@ -16,6 +17,7 @@ function createDefaultUser(jid, pushName) {
     isPremium: false,
     premiumUntil: null,
     isBanned: false,
+    warningCount: 0,
     limit: 25,
     limitResetAt: getNextMidnight(),
     level: 1,
@@ -197,6 +199,45 @@ function getLeaderboard(type = 'balance', limit = 10) {
   return sorted.slice(0, limit);
 }
 
+function banUser(jid) {
+  return updateUser(jid, { isBanned: true });
+}
+
+function unbanUser(jid) {
+  return updateUser(jid, { isBanned: false, warningCount: 0 });
+}
+
+function addPremium(jid, days) {
+  const user = getUser(jid);
+  const now = Date.now();
+  const base = user.premiumUntil && user.premiumUntil > now ? user.premiumUntil : now;
+  const premiumUntil = base + days * 24 * 60 * 60 * 1000;
+  return updateUser(jid, { isPremium: true, premiumUntil });
+}
+
+function delPremium(jid) {
+  return updateUser(jid, { isPremium: false, premiumUntil: null });
+}
+
+function addWarning(jid) {
+  const user = getUser(jid);
+  const warningCount = (user.warningCount || 0) + 1;
+  const updates = { warningCount };
+  let autoBanned = false;
+
+  if (warningCount >= WARNING_LIMIT) {
+    updates.isBanned = true;
+    autoBanned = true;
+  }
+
+  const updated = updateUser(jid, updates);
+  return { warningCount, autoBanned, user: updated };
+}
+
+function resetWarning(jid) {
+  return updateUser(jid, { warningCount: 0 });
+}
+
 module.exports = {
   getUser,
   updateUser,
@@ -209,4 +250,11 @@ module.exports = {
   buyItem,
   getLeaderboard,
   expNeededForLevel,
+  banUser,
+  unbanUser,
+  addPremium,
+  delPremium,
+  addWarning,
+  resetWarning,
+  WARNING_LIMIT,
 };
